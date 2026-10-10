@@ -1,1 +1,4 @@
 models/
+session_state/
+session_executor/
+.DS_Store
