@@ -15,5 +15,13 @@ class Program
         
         // Entry point for the application
         await chatSession.Run();
+
+        var documentAgent = new DocumentAgent(
+            chatModelPath: "./models/Ministral-3-3B-Instruct-2512-Q4_K_M.gguf",
+            embedModelPath: "./models/Qwen3-Embedding-0.6B-Q8_0.gguf"
+        );
+
+        // Entry point for running the DocumentAgent
+        await documentAgent.Run();
     }
 }
