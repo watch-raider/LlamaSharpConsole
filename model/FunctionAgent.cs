@@ -1,51 +1,59 @@
 using LLama;
 using LLama.Common;
-using LLama.Abstractions;
-using Microsoft.Extensions.AI;
+using LLama.Transformers;
+using LLama.Sampling;
 
 namespace LlamaSharpConsole.Model;
 
-public class FunctionAgent
+public class FunctionAgent : Llama3ChatSession
 {
-    private IChatClient Client { get; set; }
-
-    public FunctionAgent(string chatModelPath)
+    public FunctionAgent(string modelPath, string statePath, string chatHistoryPath, string executorPath, string[] antiPrompts, int gpuLayerCount = 0, float temperature = 0.6F, int maxTokens = -1) 
+        : base(modelPath, statePath, chatHistoryPath, executorPath, antiPrompts, gpuLayerCount, temperature, maxTokens)
     {
-        var chatParams = new ModelParams(chatModelPath) { ContextSize = 4096, GpuLayerCount = -1 };
-        var chatWeights = LLamaWeights.LoadFromFile(chatParams);
-        var chatExecutor = new StatelessExecutor(chatWeights, chatParams);
-
-        // 4. Build the Microsoft Agent ChatClient
-        Client = new ChatClientBuilder(chatExecutor.AsChatClient()).Build();
     }
 
-    // Add a new plugin with a local .NET function
-    // that should be available to the AI model.
-    private ChatOptions chatOptions = new ChatOptions
+    public override async Task Run()
     {
-        Tools = [AIFunctionFactory.Create((string location, string unit) =>
+        await base.Run();
+
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.WriteLine("The chat session has started.");
+
+        // show the prompt
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.Write("User> ");
+        var userInput = Console.ReadLine() ?? "";
+
+        while (userInput != "exit")
         {
-            // Here you would call a weather API
-            // to get the weather for the location.
-            return "Periods of rain or drizzle, 15 C";
-        },
-        "get_current_weather",
-        "Gets the current weather in a given location")]
-    };
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.Write("Assistant> ");
+            // as each token (partial or whole word is streamed back) print it to the console, stream to web client, etc
+            await foreach (
+                var text
+                in Session.ChatAsync(
+                    new ChatHistory.Message(AuthorRole.User, userInput),
+                    InferenceParams))
+            {
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.Write(text);
+            }
+            Console.WriteLine();
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.Write("User> ");
+            userInput = Console.ReadLine() ?? "";
+        }
 
-    public async Task Run()
-    {
-        // System prompt to provide context.
-            List<ChatMessage> chatHistory = [new(ChatRole.System, """
-                You are a hiking enthusiast who helps people discover fun hikes in their area. You are upbeat and friendly.
-                """)];
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.WriteLine("Saving session...");
+        Session.SaveSession(StatePath);
+        Console.WriteLine("Saved session!");
+        Console.ForegroundColor = ConsoleColor.White;
 
-            // Weather conversation relevant to the registered function.
-            chatHistory.Add(new ChatMessage(ChatRole.User,
-                "I live in Montreal and I'm looking for a moderate intensity hike. What's the current weather like?"));
-            Console.WriteLine($"{chatHistory.Last().Role} >>> {chatHistory.Last()}");
-
-            ChatResponse response = await Client.GetResponseAsync(chatHistory, chatOptions);
-            Console.WriteLine($"Assistant >>> {response.Text}");
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.WriteLine("Saving executor state...");
+        await Executor.SaveState(ExecutorPath);
+        Console.WriteLine("Saved executor state!");
+        Console.ForegroundColor = ConsoleColor.White;
     }
 }
