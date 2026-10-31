@@ -3,6 +3,7 @@ using LLama.Common;
 using LLama.Transformers;
 using LLama.Sampling;
 using LlamaSharpConsole.Interfaces;
+using Microsoft.Extensions.AI;
 
 namespace LlamaSharpConsole.Model;
 
@@ -18,7 +19,9 @@ public class Llama3ChatSession : IChatSession
     public ChatSession Session { get; set; }
     public InferenceParams InferenceParams { get; set; }
     public ModelParams Parameters { get; set; }
-
+    public IChatClient? ChatClient { get; set; }
+    public ChatOptions? ChatOptions { get; set; }
+    
     public Llama3ChatSession(
         string modelPath, 
         string statePath,
@@ -65,5 +68,10 @@ public class Llama3ChatSession : IChatSession
         var chatHistory = ChatHistory.FromJson(chatHistoryJson) ?? new ChatHistory();
 
         Session = new(Executor, chatHistory);
+    }
+
+    public virtual void AddTools()
+    {
+        throw new NotImplementedException();
     }
 }

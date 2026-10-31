@@ -14,7 +14,7 @@ class Program
             executorPath: "./session_executor/executor_state.bin",
             antiPrompts: new[] { "User:" }
         );
-        
+
         // Entry point for the application
         await chatSession.Run();
     }

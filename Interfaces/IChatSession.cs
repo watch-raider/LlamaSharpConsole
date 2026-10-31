@@ -2,6 +2,7 @@ using LLama;
 using LLama.Common;
 using LLama.Transformers;
 using LLama.Sampling;
+using Microsoft.Extensions.AI;
 
 namespace LlamaSharpConsole.Interfaces;
 
@@ -17,6 +18,9 @@ interface IChatSession
     ChatSession Session { get; set; }
     InferenceParams InferenceParams { get;}
     ModelParams Parameters { get;}
+    IChatClient? ChatClient { get; }
+    ChatOptions? ChatOptions { get; set; }
 
     Task Run();
+    void AddTools();
 }
